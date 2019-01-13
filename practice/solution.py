@@ -45,7 +45,7 @@ def parse_config(line):
     return {
         'rows': int(r),
         'cols': int(c),
-        'min_ingridients': int(l),
+        'min_ingredients': int(l),
         'slice_limit': int(h),
     }
 
@@ -62,7 +62,7 @@ def parse_pizza(dataset_, pizza_):
 if __name__ == "__main__":
     from benchmark import print_duration
 
-    dataset = open('d_big.in', encoding='UTF-8')
+    dataset = open('datasets/d_big.in', encoding='UTF-8')
     pizza = Pizza(config=parse_config(dataset.readline()))
 
     print_duration(parse_pizza, dataset, pizza)
