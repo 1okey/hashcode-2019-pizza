@@ -1,42 +1,66 @@
+from string import Template
+
+
 class Slice :
-    _x1 = 0
-    _y1 = 0
-    _x2 = 0
-    _y2 = 0
+    __x1 = 0
+    __y1 = 0
+    __x2 = 0
+    __y2 = 0
+    __template = Template("$y1 $x1 $y2 $x2")
 
-    def __init__(self):
-        pass
-
-    def add_x(self):
-        pass
-
-    def add_y(self):
-        pass
+    def __init__(self, x1, y1, x2, y2):
+        self.__x1 = x1
+        self.__y1 = y1
+        self.__x2 = x2
+        self.__y2 = y2
 
     def transpose(self):
         pass
 
+    @property
+    def cords(self):
+        return self.__template.substitute(self.__y1, self.__x1, self.__y2, self.__x2)
+
 
 class Pizza :
-    _start_x = 0
-    _start_y = 0
-    _height = 0
-    _width = 0
-    _data = list()
-    _slices = list()
+    __start_x = 0
+    __start_y = 0
+    __height  = 0
+    __width   = 0
+    __data    = list()
+    __slices  = list()
 
     def __init__(self, config):
         self._height = config['rows']
         self._width = config['cols']
 
     def add_row(self, row):
-        self._data.append(row)
+        self.__data.append(row)
+
+    def is_cut(self):
+        return self.__start_x + 1 == self._width and \
+               self.__start_y + 1 == self._height
+
+    def meets_conditions(self):
+        # TODO
+        pass
 
     def cut_slices(self):
-        pass
+        while not self.is_cut():
+            end_x, end_y = [0,0]
+
+            while not self.meets_conditions():
+                # TODO
+                pass
+
+            p_slice = Slice(self.__start_x, self.__start_y, end_x, end_y)
+            self.__slices.append(p_slice)
 
     def save_result(self):
-        pass
+        output = open("output.out", mode='w')
+        output.write(str(len(self.__slices)))
+        for _slice in self.__slices:
+            output.write(_slice.coords)
 
 
 def parse_config(line):
@@ -52,11 +76,7 @@ def parse_config(line):
 
 def parse_pizza(dataset_, pizza_):
     for line in dataset_:
-        pizza_.add_row(
-            list(
-                filter(lambda char: not char == '\n', line)
-            )
-        )
+        pizza_.add_row(list(filter(lambda char: not char == '\n', line)))
 
 
 if __name__ == "__main__":
