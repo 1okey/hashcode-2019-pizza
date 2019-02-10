@@ -1,3 +1,9 @@
 .idea
 env
+.env
+.venv
+venv
+.vscode
 __pycache__
+**.out
+**test.py
