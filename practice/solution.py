@@ -1,4 +1,4 @@
-from pprint import pprint
+from itertools import product
 from collections import Counter
 
 from benchmark import measure_time
@@ -18,8 +18,16 @@ class Slice:
     def cords(self):
         return f"{self.y1} {self.x1} {self.y2} {self.x2}"
 
+    def __str__(self):
+        return self.cords
+
+    def __repr__(self):
+        return self.cords
+
 
 class Pizza:
+    ING_COUNT = 2
+
     def __init__(self, dataset):
         self.data = list()
         self.slices = list()
@@ -32,6 +40,7 @@ class Pizza:
         self.current_x = 0
         self.current_y = 0
         self.load_dataset(dataset)
+        self.combinations = self.create_combinations()
 
     @measure_time
     def load_dataset(self, dataset):
@@ -41,40 +50,66 @@ class Pizza:
 
             for line in file:
                 line = line.strip()
-                self.data.append(line)
+                self.data.append(list(line))
+
+    def create_combinations(self):
+        data = list()
+        for x, y in product(list(range(1, self.max_size + 1)), repeat=2):
+            mul = x * y
+            if 1 < mul <= self.max_size:
+                data.append((x, y))
+        return sorted(data, key=lambda tup: tup[0] + tup[1])
 
     def is_cut(self):
-        return self.current_x + 1 == self.width and self.current_y + 1 == self.height
+        return self.current_y >= self.height
 
     def meets_conditions(self, slice):
+        if not slice:
+            return False
+
         ingridients = Counter()
         for row in slice:
             ingridients += Counter(row)
-        return (len(slice[0]) * len(slice) <= self.max_size
-                and len(ingridients.keys()) == 2
-                and )
+
+        ing_cond = len(ingridients.keys()) == self.ING_COUNT
+        size_cond = sum(ingridients.values()) <= self.max_size
+        M_cond = ingridients.get('M', 0) >= self.min_ing
+        T_cond = ingridients.get('T', 0) >= self.min_ing
+
+        return all([ing_cond, size_cond, M_cond, T_cond])
 
     @measure_time
     def cut_slices(self):
         while not self.is_cut():
-            end_x, end_y = [self.current_x, self.current_y]
-            y = self.current_y
-            p_slice = list()
-            while not self.meets_conditions(p_slice):
+            is_sliced = False
+            for combo_y, combo_x in self.combinations:
+                y2 = (self.current_y + combo_y)
+                x2 = (self.current_x + combo_x)
 
-                while not y <= end_y:
-                    p_slice.append(self.data[y][self.current_x:end_x])
-                    y += 1
+                slice_col = slice(self.current_x, x2)
+                p_slice = [self.data[y][slice_col] for y in range(self.current_y, y2) if (y + 1) <= self.height]
+                if self.meets_conditions(p_slice):
+                    self.slices.append(Slice(self.current_x, self.current_y, x2 - 1, y2 - 1))
 
-                end_x += 1
+                    for y in range(self.current_y, y2):
+                        if (y + 1) <= self.height:
+                            for x in range(self.current_x, x2):
+                                self.data[y][x] = '*'
 
-            p_slice = Slice(self.current_x, self.current_y, end_x, end_y)
-            self.slices.append(p_slice)
+                    self.current_x = x2 % self.width
+                    self.current_y = self.current_y if x2 < self.width else y2
+                    is_sliced = True
+                    break
+            if not is_sliced:
+                self.current_x += 1
+                if self.current_x >= self.width:
+                    self.current_x %= self.width
+                    self.current_y += 1
 
     @measure_time
-    def save_result(self):
+    def save_result(self, f_name):
         result = "\n".join([item.cords for item in self.slices])
-        with open("output.out", mode="w") as file:
+        with open(f"{f_name}.out", mode="w") as file:
             file.write(f"{len(self.slices)}\n")
             file.write(result)
 
@@ -82,7 +117,4 @@ class Pizza:
 if __name__ == "__main__":
     pizza = Pizza(dataset="./datasets/b_small.in")
     # Tests
-    pprint(pizza.data)
-    test = [Slice(i, i, i, i) for i in range(5)]
-    pizza.slices = test
-    pizza.save_result()
+    pizza.save_result(f_name='b_small')
