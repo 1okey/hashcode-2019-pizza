@@ -26,7 +26,7 @@ class Pizza:
         self.height = 0
         self.width = 0
         self.min_ing = 0
-        self.max_cell = 0
+        self.max_size = 0
 
         self.current_x = 0
         self.current_y = 0
@@ -36,30 +36,33 @@ class Pizza:
     def load_dataset(self, dataset):
         with open(dataset) as file:
             raw_conf = file.readline()
-            self.height, self.width, self.min_ing, self.max_cell = [int(i) for i in raw_conf.split()]
+            self.height, self.width, self.min_ing, self.max_size = [int(i) for i in raw_conf.split()]
 
             for line in file:
                 line = line.strip()
-                self.data.append(list(line))
+                self.data.append(line)
 
     def is_cut(self):
         return self.current_x + 1 == self.width and self.current_y + 1 == self.height
 
-    def meets_conditions(self):
-        # TODO
+    def meets_conditions(self, slice):
         pass
 
     @measure_time
     def cut_slices(self):
         while not self.is_cut():
-            end_x, end_y = [0, 0]
+            end_x, end_y = [self.current_x, self.current_y]
+            y = self.current_y
+            p_slice = list()
+            while not y <= end_y:
+                p_slice.append(self.data[y][self.current_x:end_x])
+                y += 1 
 
-            while not self.meets_conditions():
-                # TODO
-                pass
+            if self.meets_conditions(p_slice):
+                p_slice = Slice(self.current_x, self.current_y, end_x, end_y)
+                self.slices.append(p_slice)
 
-            p_slice = Slice(self.current_x, self.current_y, end_x, end_y)
-            self.slices.append(p_slice)
+            end_x += 1
 
     @measure_time
     def save_result(self):
