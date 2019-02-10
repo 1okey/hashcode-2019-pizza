@@ -1,4 +1,5 @@
 from pprint import pprint
+from collections import Counter
 
 from benchmark import measure_time
 
@@ -46,7 +47,12 @@ class Pizza:
         return self.current_x + 1 == self.width and self.current_y + 1 == self.height
 
     def meets_conditions(self, slice):
-        pass
+        ingridients = Counter()
+        for row in slice:
+            ingridients += Counter(row)
+        return (len(slice[0]) * len(slice) <= self.max_size
+                and len(ingridients.keys()) == 2
+                and )
 
     @measure_time
     def cut_slices(self):
@@ -54,15 +60,16 @@ class Pizza:
             end_x, end_y = [self.current_x, self.current_y]
             y = self.current_y
             p_slice = list()
-            while not y <= end_y:
-                p_slice.append(self.data[y][self.current_x:end_x])
-                y += 1 
+            while not self.meets_conditions(p_slice):
 
-            if self.meets_conditions(p_slice):
-                p_slice = Slice(self.current_x, self.current_y, end_x, end_y)
-                self.slices.append(p_slice)
+                while not y <= end_y:
+                    p_slice.append(self.data[y][self.current_x:end_x])
+                    y += 1
 
-            end_x += 1
+                end_x += 1
+
+            p_slice = Slice(self.current_x, self.current_y, end_x, end_y)
+            self.slices.append(p_slice)
 
     @measure_time
     def save_result(self):
@@ -73,7 +80,7 @@ class Pizza:
 
 
 if __name__ == "__main__":
-    pizza = Pizza(dataset="datasets/b_small.in")
+    pizza = Pizza(dataset="./datasets/b_small.in")
     # Tests
     pprint(pizza.data)
     test = [Slice(i, i, i, i) for i in range(5)]
