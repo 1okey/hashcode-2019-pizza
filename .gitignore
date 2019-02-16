@@ -1,12 +1,11 @@
-# folders
+# editors 
 .idea
-env
-.env
-.venv
-venv
 .vscode
-__pycache__
+
+# folders
+env
 results
+__pycache__
 
 # files
 **.out
