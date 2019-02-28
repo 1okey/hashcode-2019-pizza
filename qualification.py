@@ -1,5 +1,6 @@
 from benchmark import measure_time
 from collections import defaultdict
+from pprint import pprint
 
 
 @measure_time
@@ -89,10 +90,10 @@ def save_result(file_name, result):
 
 def solve_problem(file_name):
     number_slides, tags_index, photos_index = read_input(file_name)
-    # pprint(photos_index)
-    # pprint(tags_index)
-    slides = create_slides(photos_index, tags_index)
-    save_result(file_name, slides)
+    pprint(photos_index)
+    pprint(tags_index)
+    # slides = create_slides(photos_index, tags_index)
+    # save_result(file_name, slides)
 
 
 if __name__ == "__main__":
