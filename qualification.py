@@ -1,6 +1,6 @@
 from benchmark import measure_time
 from collections import defaultdict
-from pprint import pprint
+
 
 @measure_time
 def read_input(file_name):
@@ -9,13 +9,12 @@ def read_input(file_name):
         tags_index = defaultdict(list)
         photos_index = dict()
         for p_index, line in enumerate(file):
-            line = line.replace('\n','')
+            line = line.replace('\n', '')
             orientation, _, *tags = line.split(' ')
             photos_index[p_index] = dict(tags=set(tags), orientation=orientation, index=p_index)
             for tag in tags:
                 tags_index[tag].append(dict(orientation=orientation, tags=set(tags), index=p_index, used=False))
         return [number_slides, tags_index, photos_index]
-
 
 
 def find_interesting(photos_index, tags_index, cur_photo):
@@ -24,12 +23,13 @@ def find_interesting(photos_index, tags_index, cur_photo):
     interesting = None
     if cur_photo is None:
         print('AAAAAAAAAAAAAAAAAAAAAAAaa')
-    
+
     current_tag_photo = cur_photo['tags']
     for tag in cur_photo['tags']:
         possible_photos.extend(tags_index[tag])
 
-    possible_photos = [photo for photo in possible_photos if not photo['used']]
+    possible_photos = {photo['index']: photo for photo in possible_photos if not photo['used']}
+    possible_photos = possible_photos.values()
     for photo in possible_photos:
         if photo['index'] == cur_photo['index']:
             continue
@@ -49,8 +49,10 @@ def find_interesting(photos_index, tags_index, cur_photo):
 
     return best_photo
 
+
 @measure_time
 def create_slides(photos_index, tags_index):
+    print('Create slides')
     index = 0
     last_photo = photos_index[index]
     photos_index[index]['used'] = True
@@ -77,6 +79,7 @@ def create_slides(photos_index, tags_index):
 
 
 def save_result(file_name, result):
+    print('Save result')
     with open(f"./results/{file_name}.out", mode="w") as file:
         number = len(result)
         file.write(str(number) + '\n')
@@ -91,8 +94,7 @@ def solve_problem(file_name):
     slides = create_slides(photos_index, tags_index)
     save_result(file_name, slides)
 
-    
+
 if __name__ == "__main__":
     for in_file in ["b_lovely_landscapes"]:
         solve_problem(in_file)
-
