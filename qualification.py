@@ -60,9 +60,6 @@ def create_slides(photos_index, tags_index):
             break
         if last_photo['orientation'] == 'H':
             new_photo = find_interesting(photos_index, tags_index, last_photo)
-            # if new_photo is None:
-            #     index += 1
-            #     continue 
             slides.append(str(last_photo['index']))
             last_photo['used'] = True
             last_photo = new_photo
