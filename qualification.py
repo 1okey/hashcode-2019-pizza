@@ -121,14 +121,13 @@ def save_result(file_name, used_photos, result):
 
 @measure_time
 def solution_one(file_name):
-    logger.debug(f'Log for "{file_name}" dataset')
     slides = []
-    used_photos = 0  # for statistics
+    used_photos_numb = 0  # for statistics
     number_slides, photos, tag_map = read_input(file_name)
 
     # take the first photo to start
     last_photo = photos[0]
-    used_photos += 1
+    used_photos_numb += 1
     slides.append(str(last_photo.index))
     del photos[0]
 
@@ -137,7 +136,7 @@ def solution_one(file_name):
         photos_found = create_slide(last_photo, photos, tag_map)
         if photos_found:
             last_photo = photos[photos_found[-1]]
-            used_photos += len(photos_found)
+            used_photos_numb += len(photos_found)
             slides.append(', '.join([str(item) for item in photos_found]))
 
             # delete photo from collection
@@ -149,20 +148,20 @@ def solution_one(file_name):
             random_index = choice(list(photos.keys()))
             logger.debug(f'Choose random photo index: {random_index}')
             last_photo = photos[random_index]
-            used_photos += 1
+            used_photos_numb += 1
             slides.append(str(random_index))
             del photos[random_index]
 
-    print(f'All photo: {number_slides}, used photos: {used_photos}, unused photo: {number_slides - used_photos}')
-    save_result(file_name, used_photos, slides)
+    print(f'All photo: {number_slides}, used photos: {used_photos_numb}, unused photo: {number_slides - used_photos_numb}')
+    save_result(file_name, used_photos_numb, slides)
 
 
 if __name__ == "__main__":
     datasets = [
         # 'a_example',
         # 'b_lovely_landscapes',
-        # 'c_memorable_moments',
-        'd_pet_pictures',
+        'c_memorable_moments',
+        # 'd_pet_pictures',
         # 'e_shiny_selfies',
     ]
     for in_file in datasets:
