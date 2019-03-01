@@ -111,10 +111,10 @@ def create_slide(last_photo, photos, tag_map):
     return slide
 
 
-def save_result(file_name, used_photos, result):
+def save_result(file_name, result):
     print('Save result')
     with open(f"./results/{file_name}.out", mode="w") as file:
-        file.write(str(used_photos) + '\n')
+        file.write(str(len(result)) + '\n')
         data = '\n'.join(result)
         file.write(data)
 
@@ -132,12 +132,11 @@ def solution_one(file_name):
     del photos[0]
 
     while photos:
-        print(f'Len of photos: {len(photos.keys())}')
         photos_found = create_slide(last_photo, photos, tag_map)
         if photos_found:
             last_photo = photos[photos_found[-1]]
             used_photos_numb += len(photos_found)
-            slides.append(', '.join([str(item) for item in photos_found]))
+            slides.append(' '.join([str(item) for item in photos_found]))
 
             # delete photo from collection
             for key in photos_found:
@@ -153,13 +152,13 @@ def solution_one(file_name):
             del photos[random_index]
 
     print(f'All photo: {number_slides}, used photos: {used_photos_numb}, unused photo: {number_slides - used_photos_numb}')
-    save_result(file_name, used_photos_numb, slides)
+    save_result(file_name, slides)
 
 
 if __name__ == "__main__":
     datasets = [
-        # 'a_example',
-        # 'b_lovely_landscapes',
+        'a_example',
+        'b_lovely_landscapes',
         'c_memorable_moments',
         # 'd_pet_pictures',
         # 'e_shiny_selfies',
