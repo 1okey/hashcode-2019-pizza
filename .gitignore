@@ -4,9 +4,13 @@
 
 # folders
 env
+.env
+venv
+.venv
 results
 __pycache__
 
 # files
 **.out
 **test.py
+**.log
