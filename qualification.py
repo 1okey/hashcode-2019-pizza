@@ -1,100 +1,169 @@
+import logging
+from collections import defaultdict, namedtuple, Counter
+from random import choice
+
 from benchmark import measure_time
-from collections import defaultdict
-from pprint import pprint
+
+# init logger for DEBUG
+logger = logging.getLogger('hashcode-2019')
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('hashcode-2019.log', 'w')
+fh.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger.addHandler(fh)
+
+photo = namedtuple('Photo', 'index orientation tags number_tags')
 
 
 @measure_time
 def read_input(file_name):
+    """
+    Read dataset
+    :param str file_name:
+    :return int, dict, dict:
+    """
     with open(f'datasets/{file_name}.txt') as file:
-        number_slides = file.readline()
-        tags_index = defaultdict(list)
-        photos_index = dict()
-        for p_index, line in enumerate(file):
+        number_slides = int(file.readline().replace('\n', ''))
+        tag_map = defaultdict(list)
+        photos = dict()
+
+        for photo_index, line in enumerate(file):
             line = line.replace('\n', '')
-            orientation, _, *tags = line.split(' ')
-            photos_index[p_index] = dict(tags=set(tags), orientation=orientation, index=p_index)
+            orientation, number_of_tags, *tags = line.split(' ')
+            photos[photo_index] = photo(photo_index, orientation, set(tags), number_of_tags)
+
             for tag in tags:
-                tags_index[tag].append(p_index)
-        return [number_slides, tags_index, photos_index]
+                tag_map[tag].append(photo_index)
+
+        return number_slides, photos, tag_map
 
 
-def find_interesting(photos_index, tags_index, current_photo):
-    possible_photos = set()
-    best_photo = None
-    interesting = 0
+def get_max_mention(counter, necessary_orientation=None):
+    """
 
-    current_tag_photo = current_photo['tags']
-    for tag in current_photo['tags']:
-        possible_photos.update(set(tags_index[tag]))
-
-    # possible_photos = [photo for photo in possible_photos if not photos_index[photo]['used']]
-    for photo in possible_photos:
-        if photo == current_photo['index']:
+    :param Counter counter:
+    :param necessary_orientation:
+    :return:
+    """
+    for item in counter.most_common():
+        if not necessary_orientation:
+            return item[0]
+        elif item[1].orientation != necessary_orientation:
             continue
+        else:
+            return item[1].index
 
-        possible_tags = photos_index[photo]['tags']
-        inter = len(possible_tags.intersection(current_tag_photo))
-        if interesting < inter:
-            best_photo = photo
-            interesting = inter
-        if interesting >= len(current_tag_photo) / 2:
-            break
-
-    if best_photo:
-        return photos_index[best_photo]
+    return None
 
 
-@measure_time
-def create_slides(photos_index, tags_index):
-    print('Create slides')
-    index = 0
-    last_photo = photos_index[index]
-    photos_index[index]['used'] = True
-    slides = list()
-    while index <= len(photos_index.keys()):
-        # if not last_photo:
-        #     break
-        index += 1
-        if last_photo['orientation'] == 'H':
-            new_photo = find_interesting(photos_index, tags_index, last_photo)
-            if not new_photo:
-                continue
-            slides.append(str(last_photo['index']))
-            last_photo['used'] = True
-            last_photo = new_photo
-            continue
-        if last_photo['orientation'] == 'V':
-            first_interesting = find_interesting(photos_index, tags_index, last_photo)
-            if not first_interesting:
-                continue
-            second_interesting = find_interesting(photos_index, tags_index, first_interesting)
-            if not second_interesting:
-                continue
-            slides.append('{}, {}'.format(last_photo['index'], first_interesting['index']))
-            first_interesting['used'] = True
-            last_photo['used'] = True
-            last_photo = second_interesting
-            continue
-    return slides
+def get_interesting_photo(last_photo, photos, tag_map, necessary_orientation=None):
+    """
+    Searches for matching photos by tag intersection and orientation
+    :param namedtuple last_photo:
+    :param dict photos:
+    :param dict tag_map:
+    :param str necessary_orientation: 'V'
+    :return list:
+    """
+    possible_photos = []
+    for tag in last_photo.tags:
+        for photo in tag_map[tag]:
+            # the index of the last photo is ignored and
+            # it is checked that the photo is in the collection
+            if (photo != last_photo.index) and (photo in photos):
+                possible_photos.append(photo)
+
+    # intersection of tags was replaced by counting references
+    # of photos by tags of the last photo
+    number_of_mentions = Counter(possible_photos)
+    if number_of_mentions and necessary_orientation:
+
+        for key, value in number_of_mentions.items():
+            number_of_mentions[key] = photos[key]
+
+        return get_max_mention(number_of_mentions, necessary_orientation)
+    elif number_of_mentions:
+        return get_max_mention(number_of_mentions, necessary_orientation)
+
+    return None
 
 
-def save_result(file_name, result):
+def create_slide(last_photo, photos, tag_map):
+    """
+    Creates a slide. May consist of one horizontal photo or two vertical
+    :param namedtuple last_photo:
+    :param dict tag_map:
+    :param dict photos:
+    :return list:
+    """
+    slide = []
+    first_photo_index = get_interesting_photo(last_photo, photos, tag_map)
+    if first_photo_index:
+        slide.append(first_photo_index)
+        first_photo = photos[first_photo_index]
+
+        if first_photo.orientation == 'V':
+            second_photo_index = get_interesting_photo(first_photo, photos, tag_map, necessary_orientation='V')
+            if second_photo_index:
+                slide.append(second_photo_index)
+
+    return slide
+
+
+def save_result(file_name, used_photos, result):
     print('Save result')
     with open(f"./results/{file_name}.out", mode="w") as file:
-        number = len(result)
-        file.write(str(number) + '\n')
-        data = ' \n'.join(result)
+        file.write(str(used_photos) + '\n')
+        data = '\n'.join(result)
         file.write(data)
 
 
-def solve_problem(file_name):
-    number_slides, tags_index, photos_index = read_input(file_name)
-    # pprint(photos_index[0])
-    # pprint(tags_index)
-    slides = create_slides(photos_index, tags_index)
-    save_result(file_name, slides)
+@measure_time
+def solution_one(file_name):
+    logger.debug(f'Log for "{file_name}" dataset')
+    slides = []
+    used_photos = 0  # for statistics
+    number_slides, photos, tag_map = read_input(file_name)
+
+    # take the first photo to start
+    last_photo = photos[0]
+    used_photos += 1
+    slides.append(str(last_photo.index))
+    del photos[0]
+
+    while photos:
+        print(f'Len of photos: {len(photos.keys())}')
+        photos_found = create_slide(last_photo, photos, tag_map)
+        if photos_found:
+            last_photo = photos[photos_found[-1]]
+            used_photos += len(photos_found)
+            slides.append(', '.join([str(item) for item in photos_found]))
+
+            # delete photo from collection
+            for key in photos_found:
+                if key in photos:
+                    del photos[key]
+        else:
+            # if no suitable photos are found - randomly choose from available ones
+            random_index = choice(list(photos.keys()))
+            logger.debug(f'Choose random photo index: {random_index}')
+            last_photo = photos[random_index]
+            used_photos += 1
+            slides.append(str(random_index))
+            del photos[random_index]
+
+    print(f'All photo: {number_slides}, used photos: {used_photos}, unused photo: {number_slides - used_photos}')
+    save_result(file_name, used_photos, slides)
 
 
 if __name__ == "__main__":
-    for in_file in ["b_lovely_landscapes"]:
-        solve_problem(in_file)
+    datasets = [
+        # 'a_example',
+        # 'b_lovely_landscapes',
+        # 'c_memorable_moments',
+        'd_pet_pictures',
+        # 'e_shiny_selfies',
+    ]
+    for in_file in datasets:
+        solution_one(in_file)
