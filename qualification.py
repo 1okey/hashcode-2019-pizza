@@ -27,11 +27,18 @@ def read_input(file_name):
         number_slides = int(file.readline().replace('\n', ''))
         tag_map = defaultdict(list)
         photos = dict()
+        tag_map['V'] = set()
+        tag_map['H'] = set()
 
         for photo_index, line in enumerate(file):
             line = line.replace('\n', '')
             orientation, number_of_tags, *tags = line.split(' ')
-            photos[photo_index] = photo(photo_index, orientation, set(tags), number_of_tags)
+            photos[photo_index] = photo(photo_index, orientation, set(tags), int(number_of_tags))
+
+            if orientation == 'V':
+                tag_map['V'].add(photo_index)
+            else:
+                tag_map['H'].add(photo_index)
 
             for tag in tags:
                 tag_map[tag].append(photo_index)
@@ -39,31 +46,12 @@ def read_input(file_name):
         return number_slides, photos, tag_map
 
 
-def get_max_mention(counter, necessary_orientation=None):
-    """
-
-    :param Counter counter:
-    :param necessary_orientation:
-    :return:
-    """
-    for item in counter.most_common():
-        if not necessary_orientation:
-            return item[0]
-        elif item[1].orientation != necessary_orientation:
-            continue
-        else:
-            return item[1].index
-
-    return None
-
-
-def get_interesting_photo(last_photo, photos, tag_map, necessary_orientation=None):
+def get_interesting_photo(last_photo, photos, tag_map):
     """
     Searches for matching photos by tag intersection and orientation
     :param namedtuple last_photo:
     :param dict photos:
     :param dict tag_map:
-    :param str necessary_orientation: 'V'
     :return list:
     """
     possible_photos = []
@@ -77,14 +65,8 @@ def get_interesting_photo(last_photo, photos, tag_map, necessary_orientation=Non
     # intersection of tags was replaced by counting references
     # of photos by tags of the last photo
     number_of_mentions = Counter(possible_photos)
-    if number_of_mentions and necessary_orientation:
-
-        for key, value in number_of_mentions.items():
-            number_of_mentions[key] = photos[key]
-
-        return get_max_mention(number_of_mentions, necessary_orientation)
-    elif number_of_mentions:
-        return get_max_mention(number_of_mentions, necessary_orientation)
+    if number_of_mentions:
+        return number_of_mentions.most_common()[0][0]
 
     return None
 
@@ -104,9 +86,11 @@ def create_slide(last_photo, photos, tag_map):
         first_photo = photos[first_photo_index]
 
         if first_photo.orientation == 'V':
-            second_photo_index = get_interesting_photo(first_photo, photos, tag_map, necessary_orientation='V')
-            if second_photo_index:
-                slide.append(second_photo_index)
+            random_v_photo = get_random_oriented_photo(photos, tag_map, 'V', exclude=[first_photo_index])
+            slide.append(random_v_photo)
+
+        if first_photo.orientation == 'V' and len(slide) < 2:
+            logger.debug(f'Saved one vertical photo: {first_photo_index}')
 
     return slide
 
@@ -118,16 +102,35 @@ def save_result(file_name, result):
         file.write(data)
 
 
+def get_random_oriented_photo(photos, tag_map, orient, exclude=None):
+    if exclude is None:
+        exclude = []
+
+    existing_photo = set(photos.keys())
+    existing_orient_photo = existing_photo.intersection(tag_map[orient])
+    for item in exclude:
+        existing_orient_photo.remove(item)
+    random_index = choice(list(existing_orient_photo))
+
+    existing_orient_photo.remove(random_index)
+    tag_map[orient] = existing_orient_photo
+    return random_index
+
+
 @measure_time
 def solution_one(file_name):
     slides = []
     randomly_selected_photos = 0  # for statistics
     number_slides, photos, tag_map = read_input(file_name)
 
-    # take the first photo to start
-    last_photo = photos[0]
-    slides.append(str(last_photo.index))
-    del photos[0]
+    # take a first horizontal photo to start
+    for key, value in photos.items():
+        if value.orientation == 'H':
+            last_photo = value
+            slides.append(str(last_photo.index))
+
+            del photos[last_photo.index]
+            break
 
     while photos:
         photos_found = create_slide(last_photo, photos, tag_map)
@@ -141,7 +144,8 @@ def solution_one(file_name):
                     del photos[key]
         else:
             # if no suitable photos are found - randomly choose from available ones
-            random_index = choice(list(photos.keys()))
+            random_index = get_random_oriented_photo(photos, tag_map, 'H')
+
             last_photo = photos[random_index]
             randomly_selected_photos += 1
             slides.append(str(random_index))
