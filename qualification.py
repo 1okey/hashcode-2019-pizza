@@ -9,7 +9,7 @@ logger = logging.getLogger('hashcode-2019')
 logger.setLevel(logging.DEBUG)
 fh = logging.FileHandler('hashcode-2019.log', 'w')
 fh.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(asctime)s - %(message)s')
 fh.setFormatter(formatter)
 logger.addHandler(fh)
 
@@ -54,20 +54,25 @@ def get_interesting_photo(last_photo, photos, tag_map):
     :param dict tag_map:
     :return list:
     """
-    possible_photos = []
+    if last_photo.number_tags == 1:
+        optimal_intersection = 1
+    else:
+        optimal_intersection = last_photo.number_tags // 2
+    counter = Counter()
     for tag in last_photo.tags:
         for photo in tag_map[tag]:
             # the index of the last photo is ignored and
             # it is checked that the photo is in the collection
             if (photo != last_photo.index) and (photo in photos):
-                possible_photos.append(photo)
+                counter[photo] += 1
 
-    # intersection of tags was replaced by counting references
-    # of photos by tags of the last photo
-    number_of_mentions = Counter(possible_photos)
-    if number_of_mentions:
-        return number_of_mentions.most_common()[0][0]
+            # do lazy processing if it possible
+            if counter[photo] >= optimal_intersection:
+                logger.debug(f'Optimal intersection: {photo}')
+                return photo
 
+    if counter:
+        return counter.most_common()[0][0]
     return None
 
 
@@ -103,6 +108,14 @@ def save_result(file_name, result):
 
 
 def get_random_oriented_photo(photos, tag_map, orient, exclude=None):
+    """
+    Get a random photo according to orientation
+    :param dict photos:
+    :param dict tag_map:
+    :param str orient: 'H' or 'V'
+    :param exclude:
+    :return:
+    """
     if exclude is None:
         exclude = []
 
@@ -133,6 +146,7 @@ def solution_one(file_name):
             break
 
     while photos:
+        print(len(photos))
         photos_found = create_slide(last_photo, photos, tag_map)
         if photos_found:
             last_photo = photos[photos_found[-1]]
@@ -157,10 +171,10 @@ def solution_one(file_name):
 
 if __name__ == "__main__":
     datasets = [
-        'a_example',
-        'b_lovely_landscapes',
-        'c_memorable_moments',
-        # 'd_pet_pictures',
+        # 'a_example',
+        # 'b_lovely_landscapes',
+        # 'c_memorable_moments',
+        'd_pet_pictures',
         # 'e_shiny_selfies',
     ]
     for in_file in datasets:
