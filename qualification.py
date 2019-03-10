@@ -1,6 +1,5 @@
 import logging
 from collections import defaultdict, namedtuple, Counter
-from random import choice
 
 from benchmark import measure_time
 
@@ -52,7 +51,7 @@ def get_interesting_photo(last_photo, photos, tag_map):
     :param namedtuple last_photo:
     :param dict photos:
     :param dict tag_map:
-    :return list:
+    :return int:
     """
     if last_photo.number_tags == 1:
         optimal_intersection = 1
@@ -91,7 +90,7 @@ def create_slide(last_photo, photos, tag_map):
         first_photo = photos[first_photo_index]
 
         if first_photo.orientation == 'V':
-            random_v_photo = get_random_oriented_photo(photos, tag_map, 'V', exclude=[first_photo_index])
+            random_v_photo = get_random_oriented_photo(photos, tag_map, 'V', exclude=first_photo_index)
             slide.append(random_v_photo)
 
         if first_photo.orientation == 'V' and len(slide) < 2:
@@ -100,11 +99,35 @@ def create_slide(last_photo, photos, tag_map):
     return slide
 
 
-def save_result(file_name, result):
-    with open(f"./results/{file_name}.out", mode="w") as file:
-        file.write(str(len(result)) + '\n')
-        data = '\n'.join(result)
-        file.write(data)
+def append_to_file(file_name, data, mode):
+    """
+    Added data to the file
+    :param str file_name:
+    :param data: int or list or ints
+    :param str mode:
+    :return:
+    """
+    with open(f"./results/{file_name}.out", mode=mode) as file:
+        if isinstance(data, list):
+            data = ' '.join(str(item) for item in data)
+        file.write('{}\n'.format(data))
+
+
+def save_total_number(file_name):
+    """
+    Added a sum of slides to the file
+    :param str file_name:
+    :return:
+    """
+    with open(f"./results/{file_name}.out", mode='r+') as file:
+        data = file.read()
+        number_slides = len(data.strip().split('\n'))
+
+        file.seek(0)
+        result = '{}\n{}'.format(number_slides, data)
+        result = result.rstrip()
+        file.write(result)
+        file.truncate()
 
 
 def get_random_oriented_photo(photos, tag_map, orient, exclude=None):
@@ -116,16 +139,12 @@ def get_random_oriented_photo(photos, tag_map, orient, exclude=None):
     :param exclude:
     :return:
     """
-    if exclude is None:
-        exclude = []
-
     existing_photo = set(photos.keys())
     existing_orient_photo = existing_photo.intersection(tag_map[orient])
-    for item in exclude:
-        existing_orient_photo.remove(item)
-    random_index = choice(list(existing_orient_photo))
+    if exclude:
+        existing_orient_photo.remove(exclude)
 
-    existing_orient_photo.remove(random_index)
+    random_index = existing_orient_photo.pop()
     tag_map[orient] = existing_orient_photo
     return random_index
 
@@ -140,17 +159,16 @@ def solution_one(file_name):
     for key, value in photos.items():
         if value.orientation == 'H':
             last_photo = value
-            slides.append(str(last_photo.index))
+            append_to_file(file_name, last_photo.index, mode='w')
 
             del photos[last_photo.index]
             break
 
     while photos:
-        print(len(photos))
         photos_found = create_slide(last_photo, photos, tag_map)
         if photos_found:
             last_photo = photos[photos_found[-1]]
-            slides.append(' '.join([str(item) for item in photos_found]))
+            append_to_file(file_name, photos_found, mode='a')
 
             # delete photo from collection
             for key in photos_found:
@@ -166,15 +184,15 @@ def solution_one(file_name):
             del photos[random_index]
 
     print(f'All photo: {number_slides}, randomly selected photos: {randomly_selected_photos}')
-    save_result(file_name, slides)
+    save_total_number(file_name)
 
 
 if __name__ == "__main__":
     datasets = [
         # 'a_example',
-        # 'b_lovely_landscapes',
+        'b_lovely_landscapes',
         # 'c_memorable_moments',
-        'd_pet_pictures',
+        # 'd_pet_pictures',
         # 'e_shiny_selfies',
     ]
     for in_file in datasets:
